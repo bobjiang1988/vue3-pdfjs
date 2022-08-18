@@ -1,5 +1,6 @@
 {
   "name": "@boooooob/vue3-pdfjs",
+  "displayName": "vue3-pdfjs",
   "description": "PDF Reader for Vue 3 using Mozilla's PDF.js",
   "author": {
     "name": "Randolph Tellis"

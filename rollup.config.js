@@ -181,7 +181,7 @@ const merged = {
   external: external,
   output: {
     format: 'esm',
-    file: `${libBuildFolder}/${pkg.name}.esm.js`,
+    file: `${libBuildFolder}/${pkg.displayName}.esm.js`,
     exports: 'named'
   },
   treeshake: false,
@@ -216,7 +216,7 @@ const unpkgConfig = {
   external: external,
   output: {
     compact: true,
-    file: `${libBuildFolder}/${pkg.name}-browser.min.js`,
+    file: `${libBuildFolder}/${pkg.displayName}-browser.min.js`,
     format: 'iife',
     name: validPkgName,
     exports: 'auto',
