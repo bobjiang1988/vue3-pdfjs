@@ -1,24 +1,28 @@
 {
-  "name": "vue3-pdfjs",
+  "name": "@boooooob/vue3-pdfjs",
   "description": "PDF Reader for Vue 3 using Mozilla's PDF.js",
   "author": {
     "name": "Randolph Tellis"
   },
   "license": "MIT",
-  "version": "0.1.6",
+  "version": "0.1.9",
   "private": false,
   "main": "cjs/index.js",
   "browser": "vue3-pdfjs.esm.js",
   "module": "esm/index.js",
   "unpkg": "vue3-pdfjs-browser.min.js",
   "types": "vue3-pdfjs.d.ts",
-  "homepage": "https://github.com/randolphtellis/vue3-pdfjs#readme",
+  "homepage": "https://github.com/bobjiang1988/vue3-pdfjs#readme",
   "repository": {
     "type": "git",
-    "url": "https://github.com/randolphtellis/vue3-pdfjs.git"
+    "url": "https://github.com/bobjiang1988/vue3-pdfjs.git"
   },
   "bugs": {
-    "url": "https://github.com/randolphtellis/vue3-pdfjs/issues"
+    "url": "https://github.com/bobjiang1988/vue3-pdfjs/issues"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org",
+    "access": "public"
   },
   "scripts": {
     "build:lib": "scripts/build-lib.sh",
