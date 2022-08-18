@@ -32,7 +32,9 @@ Default.args = {
   src: 'https://raw.githubusercontent.com/mozilla/pdf.js/ba2edeae/web/compressed.tracemonkey-pldi-09.pdf',
   page: 1,
   enableTextSelection: true,
-  enableAnnotations: true
+  enableAnnotations: true,
+  wrapperIdPrefix: 'vue-page-pdf',
+  allPages: false
 };
 
 

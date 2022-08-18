@@ -8,7 +8,6 @@ import { PageViewport } from 'pdfjs-dist/types/src/display/display_utils'
 import { createLoadingTask } from './loading-task'
 import 'pdfjs-dist/legacy/web/pdf_viewer.css'
 import { VuePdfPropsType } from './vue-pdf-props'
-import { IPDFLinkService } from 'pdfjs-dist/types/web/interfaces'
 
 export default defineComponent({
   name: 'vue-pdf',
@@ -75,7 +74,6 @@ export default defineComponent({
     const numberOfPages = ref<number>(0)
 
     const eventBus = ref(null)
-    const linkService = ref<IPDFLinkService | null>(null)
 
     const pageNumber = computed(() => props.page || 1)
     const allPages = computed(() => Boolean(props.allPages))
@@ -233,24 +231,15 @@ export default defineComponent({
             // Render annotation layer for clickable links
             page.getAnnotations().then((annotationData) => {
               annotationLayer.style.cssText = `left: 0; top: 0; height: ${viewport.height}px; width: ${props.scale ? viewport.width : pdfWrapperElWidth}px;`
-
-              if (!linkService.value) {
-                linkService.value = new pdfjsViewer.PDFLinkService({
-                  eventBus: eventBus.value,
-                  externalLinkEnabled: true,
-                  externalLinkRel: 'noopener noreferrer nofollow',
-                  externalLinkTarget: 2 // Blank
-                })
-              }
               // Render the annotation layer
               pdfjsLib.AnnotationLayer.render({
                 viewport: viewport.clone({ dontFlip: true }),
                 div: annotationLayer,
                 annotations: annotationData,
                 page: page,
-                linkService: linkService.value as IPDFLinkService,
+                linkService: '',
                 downloadManager: '',
-                renderForms: false
+                renderInteractiveForms: false
               })
             })
           }
