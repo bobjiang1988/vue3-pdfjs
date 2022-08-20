@@ -1,12 +1,11 @@
 <div align="center">
 
-[![Build Status](https://travis-ci.com/randolphtellis/vue3-pdfjs.svg?token=hXpsA9tqveCqkXWMHjxp&branch=main)](https://travis-ci.com/randolphtellis/vue3-pdfjs) [![npm bundle size](https://img.shields.io/bundlephobia/minzip/vue3-pdfjs)](https://bundlephobia.com/result?p=vue3-pdfjs@latest) ![Snyk Vulnerabilities for npm package](https://img.shields.io/snyk/vulnerabilities/npm/vue3-pdfjs) ![npm](https://img.shields.io/npm/dt/vue3-pdfjs)
-
 ![vue supported version](https://img.shields.io/badge/vue-3.x-brightgreen) [![npm](https://img.shields.io/npm/v/vue3-pdfjs)](https://www.npmjs.com/package/vue3-pdfjs/v/latest) [![NPM](https://img.shields.io/npm/l/vue3-pdfjs)](https://github.com/randolphtellis/vue3-pdfjs/blob/main/LICENSE.md)
 
-#### <a target="_blank" href="https://randolphtellis.github.io/vue3-pdfjs">DEMO</a>
-
 </div>
+
+Forked from `https://github.com/randolphtellis/vue3-pdfjs` and enhanced a little.
+
 
 ## Install
 
@@ -17,8 +16,6 @@ yarn add vue3-pdfjs
 ```
 
 ## Usage
-
-##### Demo code can be found under the docs section <a href="https://randolphtellis.github.io/vue3-pdfjs/?path=/docs/pdf-viewer--default">here</a>.
 
 ### Import globally
 ```ts
@@ -31,6 +28,27 @@ app.use(VuePdf)
 app.mount('#app')
 ```
 
+### Props
+
+```ts
+export interface VuePdfPropsType {
+  // The source of the pdf. Accepts the following types `string | URL | Uint8Array | PDFDataRangeTransport | DocumentInitParameters`
+  src: string | URL | Uint8Array | PDFDataRangeTransport | DocumentInitParameters;
+  // The page number of the pdf to display.
+  page?: number;
+  // Whether to display all pages. Ignore the prop `page` if true
+  allPages?: boolean;
+  // The scale (zoom) of the pdf. Setting this will also disable auto scaling and resizing. 
+  scale?: number;
+  // Whether to enable text selection
+  enableTextSelection?: boolean;
+  // Whether to enable annotations (clickable links)
+  enableAnnotations?: boolean;
+  // page wrapper id prefix, default is `vue-pdf-page`
+  wrapperIdPrefix?: string;
+}
+
+```
 
 
 ### Basic Example
@@ -50,23 +68,15 @@ export default defineComponent({
   components: { VuePdf },
   setup() {
     const pdfSrc = ref<VuePdfPropsType['src']>('https://raw.githubusercontent.com/mozilla/pdf.js/ba2edeae/web/compressed.tracemonkey-pldi-09.pdf')
-    const numOfPages = ref(0)
 
-    onMounted(() => {
-      const loadingTask = createLoadingTask(pdfSrc.value)
-      loadingTask.promise.then((pdf: PDFDocumentProxy) => {
-        numOfPages.value = pdf.numPages
-      })
-    })
     return {
-      pdfSrc,
-      numOfPages
+      pdfSrc
     }
   }
 });
 </script>
 
 <template>
-  <VuePdf v-for="page in numOfPages" :key="page" :src="pdfSrc" :page="page" />
+  <VuePdf :src="pdfSrc" all-pages />
 </template>
 ```
