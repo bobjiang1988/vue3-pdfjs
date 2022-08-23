@@ -6,7 +6,7 @@
     "name": "Randolph Tellis"
   },
   "license": "MIT",
-  "version": "0.1.11",
+  "version": "0.1.12",
   "private": false,
   "main": "cjs/index.js",
   "browser": "vue3-pdfjs.esm.js",
