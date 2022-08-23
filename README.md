@@ -10,9 +10,9 @@ Forked from `https://github.com/randolphtellis/vue3-pdfjs` and enhanced a little
 ## Install
 
 ```bash
-npm i vue3-pdfjs
+npm i @boooooob/vue3-pdfjs
 or
-yarn add vue3-pdfjs
+yarn add @boooooob/vue3-pdfjs
 ```
 
 ## Usage
@@ -21,7 +21,7 @@ yarn add vue3-pdfjs
 ```ts
 import { createApp } from 'vue'
 import App from './App.vue'
-import VuePdf from 'vue3-pdfjs'
+import VuePdf from '@boooooob/vue3-pdfjs'
 
 const app = createApp(App)
 app.use(VuePdf)
@@ -57,11 +57,8 @@ Import components from the `esm` folder to enable tree shaking.
 Please note that Mozilla's pdfjs npm package does not export tree-shakeable ES modules. Info here - https://github.com/mozilla/pdf.js/issues/12900
 ```ts
 <script lang="ts">
-import { defineComponent, onMounted, reactive, ref } from 'vue';
-import { VuePdf, createLoadingTask } from 'vue3-pdfjs/esm';
-import { VuePdfPropsType } from 'vue3-pdfjs/components/vue-pdf/vue-pdf-props'; // Prop type definitions can also be imported
-import { PDFDocumentProxy } from 'pdfjs-dist/types/src/display/api';
-
+import { defineComponent, ref } from 'vue';
+import VuePdf from '@boooooob/vue3-pdfjs'
 
 export default defineComponent({
   name: 'Home',
