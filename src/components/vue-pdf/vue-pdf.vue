@@ -7,8 +7,10 @@
 <script lang="ts">
 import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.js';
 import PDFJSWorker from 'pdfjs-dist/legacy/build/pdf.worker.entry';
-import 'pdfjs-dist/legacy/web/pdf_viewer.css';
-import { PDFPageProxy } from 'pdfjs-dist/types/src/display/api';
+import {
+  PDFDocumentProxy,
+  PDFPageProxy
+} from 'pdfjs-dist/types/src/display/api';
 import { PageViewport } from 'pdfjs-dist/types/src/display/display_utils';
 import { defineComponent, ref, toRefs } from 'vue';
 import { createLoadingTask } from './loading-task';
@@ -19,6 +21,7 @@ export default defineComponent({
   props,
   setup(props: VuePdfPropsType, { emit }) {
     const pdfWrapperRef = ref<HTMLElement>();
+    const pdfDoc = ref<PDFDocumentProxy>();
     const pdfPages = ref<PDFPageProxy[]>();
     const baseScale = ref(0);
     const currentViewport = ref<PageViewport>();
@@ -26,37 +29,46 @@ export default defineComponent({
 
     const { src, wrapperIdPrefix, page, allPages, scale } = toRefs(props);
 
-    const clean = () => {
+    const clean = async () => {
+      await pdfDoc.value?.destroy();
       scaling.value = false;
       baseScale.value = 0;
       currentViewport.value = undefined;
+      pdfDoc.value = undefined;
+      pdfPages.value = undefined;
       const pdfWrapperEl = pdfWrapperRef.value as HTMLElement;
       if (!pdfWrapperEl) return;
       pdfWrapperEl.innerHTML = '';
     };
 
-    const initPdfWorker = async () => {
-      clean();
+    const initPdfDocument = async () => {
+      await clean();
       emit('progress', 0);
-      pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJSWorker;
+      try {
+        pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJSWorker;
 
-      const pdf = await createLoadingTask(src.value).promise;
+        const pdf = await createLoadingTask(src.value).promise;
+        pdfDoc.value = pdf;
 
-      emit('pdfLoaded', pdf);
-      emit('totalPages', pdf.numPages);
+        emit('pdfLoaded', pdf);
+        emit('totalPages', pdf.numPages);
 
-      if (allPages.value) {
-        // ignore pageNumber, display all pages
-        const pagePromiseArr = new Array(pdf.numPages)
-          .fill(0)
-          .map((v, idx) => pdf.getPage(idx + 1));
+        if (allPages.value) {
+          // ignore pageNumber, display all pages
+          const pagePromiseArr = new Array(pdf.numPages)
+            .fill(0)
+            .map((v, idx) => pdf.getPage(idx + 1));
 
-        pdfPages.value = await Promise.all(pagePromiseArr);
-      } else if (page.value <= pdf.numPages) {
-        pdfPages.value = [await pdf.getPage(page.value)];
-      }
-      if (pdfPages.value) {
-        await Promise.all(pdfPages.value.map(renderPage));
+          pdfPages.value = await Promise.all(pagePromiseArr);
+        } else if (page.value <= pdf.numPages) {
+          pdfPages.value = [await pdf.getPage(page.value)];
+        }
+        if (pdfPages.value) {
+          await Promise.all(pdfPages.value.map(renderPage));
+        }
+      } catch (error) {
+        console.error('init pdf failed:', error);
+        await clean();
       }
       emit('progress', 100);
     };
@@ -134,10 +146,14 @@ export default defineComponent({
       canvas.style.height = viewport.height + 'px';
       // scale the drawing context so everything will work at the higher ratio
       context.scale(ratio, ratio);
-      await page.render({
-        canvasContext: context,
-        viewport
-      }).promise;
+      await page
+        .render({
+          canvasContext: context,
+          viewport
+        })
+        .promise.catch((err) => {
+          console.error('render page error: ', err);
+        });
     };
 
     const doScale = async () => {
@@ -163,16 +179,16 @@ export default defineComponent({
 
     return {
       pdfWrapperRef,
-      initPdfWorker,
+      initPdfDocument,
       doScale
     };
   },
   mounted() {
-    this.initPdfWorker();
+    this.initPdfDocument();
   },
   watch: {
     src() {
-      this.initPdfWorker();
+      this.initPdfDocument();
     },
     scale() {
       this.doScale();

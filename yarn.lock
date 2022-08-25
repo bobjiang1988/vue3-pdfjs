@@ -4096,11 +4096,6 @@ autoprefixer@^9.8.6:
     postcss "^7.0.32"
     postcss-value-parser "^4.1.0"
 
-awaitqueue@^2.4.0:
-  version "2.4.0"
-  resolved "https://registry.npmmirror.com/awaitqueue/-/awaitqueue-2.4.0.tgz#beb9a2b563b4817921f21c09cca2cdbb0d5989d4"
-  integrity sha512-9nTnPxVuxiuKFTHslm9ltnekUECJidOQ5kE6JpZUH77KrKqStQuWUW7JPB2GJZ7rOwWLcbToHiIXle/nJe1VpQ==
-
 aws-sign2@~0.7.0:
   version "0.7.0"
   resolved "https://registry.npmmirror.com/aws-sign2/-/aws-sign2-0.7.0.tgz#b46e890934a9591f2d2f6f86d7e6a9f1b3fe76a8"
@@ -6223,7 +6218,7 @@ domhandler@^4.0.0, domhandler@^4.2.0, domhandler@^4.3.1:
   dependencies:
     domelementtype "^2.2.0"
 
-dommatrix@^1.0.1, dommatrix@^1.0.3:
+dommatrix@^1.0.3:
   version "1.0.3"
   resolved "https://registry.npmmirror.com/dommatrix/-/dommatrix-1.0.3.tgz#e7c18e8d6f3abdd1fef3dd4aa74c4d2e620a0525"
   integrity sha512-l32Xp/TLgWb8ReqbVJAFIvXmY7go4nTxxlWiAFyhoQw9RKEOHBZNnyGvJWqDVSPmq3Y9HlM4npqF/T6VMOXhww==
@@ -11631,13 +11626,10 @@ pdfjs-dist@*:
     dommatrix "^1.0.3"
     web-streams-polyfill "^3.2.1"
 
-pdfjs-dist@2.14.305:
-  version "2.14.305"
-  resolved "https://registry.npmmirror.com/pdfjs-dist/-/pdfjs-dist-2.14.305.tgz#ed2ecb439ff8af5446c90a310ebd30bc1a91df62"
-  integrity sha512-5f7i25J1dKIBczhgfxEgNxfYNIxXEdxqo6Qb4ehY7Ja+p6AI4uUmk/OcVGXfRGm2ys5iaJJhJUwBFwv6Jl/Qww==
-  dependencies:
-    dommatrix "^1.0.1"
-    web-streams-polyfill "^3.2.1"
+pdfjs-dist@2.10.377:
+  version "2.10.377"
+  resolved "https://registry.npmmirror.com/pdfjs-dist/-/pdfjs-dist-2.10.377.tgz#feadc9f31bf1790795994e54b18930974cf4970a"
+  integrity sha512-i0jRShtvgfsVQUNCoFYH4SVhPO3U0yhtiFLfZ0RR0B+68N+Vnwq+8B3cjWjLEwWGh8wg1XQ/sYMYKUlHn/Qpsw==
 
 performance-now@^2.1.0:
   version "2.1.0"
