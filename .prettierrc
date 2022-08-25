@@ -1,0 +1,11 @@
+{
+  "tabWidth": 2,
+  "useTabs": false,
+  "singleQuote": true,
+  "comma-dangle": false,
+  "semi": true,
+  "jsxSingleQuote": true,
+  "trailingComma": "none",
+  "packageManager": "yarn",
+  "singleAttributePerLine": true
+}

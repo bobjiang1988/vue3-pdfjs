@@ -1,304 +1,192 @@
+
+<template>
+  <div class="vue-pdf"
+       ref="pdfWrapperRef"></div>
+</template>
+
 <script lang="ts">
-import { computed, defineComponent, onMounted, ref } from 'vue'
-import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.js'
-import PDFJSWorker from 'pdfjs-dist/legacy/build/pdf.worker.entry'
-import * as pdfjsViewer from 'pdfjs-dist/legacy/web/pdf_viewer'
-import { PDFDocumentProxy, PDFPageProxy } from 'pdfjs-dist/types/src/display/api'
-import { PageViewport } from 'pdfjs-dist/types/src/display/display_utils'
-import { createLoadingTask } from './loading-task'
-import 'pdfjs-dist/legacy/web/pdf_viewer.css'
-import { VuePdfPropsType } from './vue-pdf-props'
+import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.js';
+import PDFJSWorker from 'pdfjs-dist/legacy/build/pdf.worker.entry';
+import 'pdfjs-dist/legacy/web/pdf_viewer.css';
+import { PDFPageProxy } from 'pdfjs-dist/types/src/display/api';
+import { PageViewport } from 'pdfjs-dist/types/src/display/display_utils';
+import { defineComponent, ref, toRefs } from 'vue';
+import { createLoadingTask } from './loading-task';
+import { props, VuePdfPropsType } from './vue-pdf-props';
 
 export default defineComponent({
   name: 'vue-pdf',
+  props,
+  setup(props: VuePdfPropsType, { emit }) {
+    const pdfWrapperRef = ref<HTMLElement>();
+    const pdfPages = ref<PDFPageProxy[]>();
+    const baseScale = ref(0);
+    const currentViewport = ref<PageViewport>();
+    const scaling = ref(false);
 
-  props: {
-    /**
-     * The source of the pdf. Accepts the following types `string | URL | Uint8Array | PDFDataRangeTransport | DocumentInitParameters`
-     */
-    src: {
-      type: [String, Object],
-      required: true
-    },
-    /**
-     * The page number of the pdf to display.
-     */
-    page: {
-      type: Number,
-      default: 1
-    },
-    /**
-     * Whether to display all pages, dangerous!!
-     */
-    allPages: {
-      type: Boolean,
-      default: false
-    },
-    /**
-     * The scale (zoom) of the pdf. Setting this will also disable auto scaling and resizing. 
-     */
-    scale: {
-      type: Number,
-      default: null
-    },
-    /**
-     * Whether to enable text selection
-     */
-    enableTextSelection: {
-      type: Boolean,
-      default: true
-    },
-    /**
-     * Whether to enable annotations (clickable links)
-     */
-    enableAnnotations: {
-      type: Boolean,
-      default: true
-    },
-    /**
-     * page wrapper id prefix
-     */
-    wrapperIdPrefix: {
-      type: String,
-      default: 'vue-pdf-page'
-    }
-  },
-  setup(props: VuePdfPropsType, ctx) {
+    const { src, wrapperIdPrefix, page, allPages, scale } = toRefs(props);
 
-    const loading = ref<boolean>(false)
+    const clean = () => {
+      scaling.value = false;
+      baseScale.value = 0;
+      currentViewport.value = undefined;
+      const pdfWrapperEl = pdfWrapperRef.value as HTMLElement;
+      if (!pdfWrapperEl) return;
+      pdfWrapperEl.innerHTML = '';
+    };
 
-    const pdfWrapperRef = ref<HTMLElement | null>(null)
-    const parentWrapperRef = ref<HTMLElement | null>(null)
+    const initPdfWorker = async () => {
+      clean();
+      emit('progress', 0);
+      pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJSWorker;
 
-    const thePDF = ref<PDFDocumentProxy | null>(null)
-    const numberOfPages = ref<number>(0)
+      const pdf = await createLoadingTask(src.value).promise;
 
-    const eventBus = ref(null)
+      emit('pdfLoaded', pdf);
+      emit('totalPages', pdf.numPages);
 
-    const pageNumber = computed(() => props.page || 1)
-    const allPages = computed(() => Boolean(props.allPages))
-    const wrapperIdPrefix = computed(() => props.wrapperIdPrefix || 'vue-pdf-page')
+      if (allPages.value) {
+        // ignore pageNumber, display all pages
+        const pagePromiseArr = new Array(pdf.numPages)
+          .fill(0)
+          .map((v, idx) => pdf.getPage(idx + 1));
 
-    const initPdfWorker = () => {
-      loading.value = true
-      pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJSWorker
-      const loadingTask = createLoadingTask(props.src)
-      loadingTask.promise.then((pdf: PDFDocumentProxy) => {
-        ctx.emit('pdfLoaded', pdf)
-        thePDF.value = pdf
-        numberOfPages.value = pdf.numPages
-        ctx.emit('totalPages', numberOfPages.value)
-        if (allPages.value) {
-          // ignore pageNumber, display all pages
-          const pagePromiseArr = new Array(numberOfPages.value).fill(0).map((v, idx) => pdf.getPage(idx + 1))
-          Promise.all(pagePromiseArr).then(pages => pages.forEach(renderPage));
-        } else if (pageNumber.value <= numberOfPages.value) {
-          pdf.getPage(pageNumber.value).then((page: PDFPageProxy) => renderPage(page))
-        }
-      })
-    }
+        pdfPages.value = await Promise.all(pagePromiseArr);
+      } else if (page.value <= pdf.numPages) {
+        pdfPages.value = [await pdf.getPage(page.value)];
+      }
+      if (pdfPages.value) {
+        await Promise.all(pdfPages.value.map(renderPage));
+      }
+      emit('progress', 100);
+    };
 
-    const renderPage = async (page: PDFPageProxy) => {
-
-      loading.value = true
-
-      const pdfWrapperEl = pdfWrapperRef.value as HTMLElement
-      const parentWrapperEl = parentWrapperRef.value as HTMLElement
+    const createWrapper = (page: PDFPageProxy) => {
+      const pdfWrapperEl = pdfWrapperRef.value as HTMLElement;
 
       // Create a wrapper for each page
-      const pageWrapper = document.createElement('div')
-      pageWrapper.classList.add('vue-pdf__wrapper')
-      pageWrapper.id = `${wrapperIdPrefix.value}-${page.pageNumber}`
+      const pageWrapper = document.createElement('div');
+      pageWrapper.classList.add('vue-pdf__wrapper');
+      pageWrapper.id = `${wrapperIdPrefix.value}-${page.pageNumber}`;
 
       // Create a canvas element for each page to draw on
-      const canvas = document.createElement('canvas')
-      pageWrapper.appendChild(canvas)
+      const canvas = document.createElement('canvas');
+      pageWrapper.appendChild(canvas);
+      pdfWrapperEl.appendChild(pageWrapper);
+    };
 
-      // Create an annotation layer for each page
-      const annotationLayer = document.createElement('div')
-      if (props.enableAnnotations) {
-        annotationLayer.classList.add('vue-pdf__wrapper-annotation-layer')
-        pageWrapper.appendChild(annotationLayer)
-      }
+    const resetBaseScale = (page: PDFPageProxy) => {
+      if (baseScale.value) return;
+      const initViewport = page.getViewport({ scale: 1 });
 
-      // Create div which will hold text-fragments (for selection)
-      const textLayerDiv = document.createElement('div');
-      if (props.enableTextSelection) {
-        textLayerDiv.classList.add('textLayer', 'vue-pdf__wrapper-text-layer')
-        pageWrapper.appendChild(textLayerDiv)
-      }
+      const pdfWrapperEl = pdfWrapperRef.value as HTMLElement;
+      const pdfWrapperElWidth = pdfWrapperEl.getBoundingClientRect().width;
+      baseScale.value = pdfWrapperElWidth / initViewport.width;
+    };
 
-      pdfWrapperEl?.appendChild(pageWrapper)
+    const resetTargetViewport = (page: PDFPageProxy) => {
+      if (currentViewport.value) return;
+      const targetScale = scale.value * baseScale.value;
+      currentViewport.value = page.getViewport({
+        scale: targetScale
+      });
+    };
 
-      // This gives us the page's dimensions at full scale
-      const initViewport = page.getViewport({ scale: 1 })
-      
+    const renderPage = async (page: PDFPageProxy) => {
+      createWrapper(page);
+      resetBaseScale(page);
+      resetTargetViewport(page);
+      await scaleCanvas(page);
+      const size = pdfPages.value?.length || 1;
+      emit('pageLoaded', page);
+      // prettier-ignore
+      emit('progress', Number(((100 * page.pageNumber) / size).toFixed(2)));
+    };
 
-      const context = canvas.getContext('2d')
-      await scaleCanvas(pdfWrapperEl, initViewport, page, canvas, context, textLayerDiv, annotationLayer)
-
-      if(!props.scale) {
-        const debouncedScaling = debounce(async () => await scaleCanvas(pdfWrapperEl, initViewport, page, canvas, context, textLayerDiv, annotationLayer))
-        window.addEventListener('resize', debouncedScaling);
-      } else {
-        parentWrapperEl.style.display = 'inline-block';
-        pdfWrapperEl.style.display = 'inline-block';
-      }
-    }
-
-    const scaleCanvas = async (
-      pdfWrapperEl: HTMLElement,
-      intialisedViewport: PageViewport,
-      page: PDFPageProxy,
-      canvas: HTMLCanvasElement,
-      context: any,
-      textLayerDiv: HTMLDivElement,
-      annotationLayer: HTMLDivElement
-    ) => {
-
-      textLayerDiv.innerHTML = ''
-      annotationLayer.innerHTML = ''
-
-      const pdfWrapperElStyles = window.getComputedStyle(pdfWrapperEl)
-      const pdfWrapperElWidth = parseFloat(pdfWrapperElStyles.width)
-
-      const scale = props.scale ? props.scale : pdfWrapperElWidth / intialisedViewport.width
-      const viewport = page.getViewport({scale})
-
+    const scaleCanvas = async (page: PDFPageProxy) => {
+      const viewport = currentViewport.value as PageViewport;
+      // prettier-ignore
+      const canvas = document.getElementById(`${wrapperIdPrefix.value}-${page.pageNumber}`)?.querySelector('canvas') as HTMLCanvasElement;
       // assume the device pixel ratio is 1 if the browser doesn't specify it
       const devicePixelRatio = window.devicePixelRatio || 1;
-
+      const context = canvas.getContext('2d') as CanvasRenderingContext2D;
       // determine the 'backing store ratio' of the canvas context
-      const backingStoreRatio = (
+      const backingStoreRatio =
+        // @ts-ignore
         context.webkitBackingStorePixelRatio ||
+        // @ts-ignore
         context.mozBackingStorePixelRatio ||
+        // @ts-ignore
         context.msBackingStorePixelRatio ||
+        // @ts-ignore
         context.oBackingStorePixelRatio ||
-        context.backingStorePixelRatio || 1
-      );
+        // @ts-ignore
+        context.backingStorePixelRatio ||
+        1;
 
       // determine the actual ratio we want to draw at
       const ratio = devicePixelRatio / backingStoreRatio;
 
-      if (devicePixelRatio !== backingStoreRatio) {
-
-        // set the 'real' canvas size to the higher width/height
-        canvas.width = props.scale ? (viewport.width * ratio) : (pdfWrapperElWidth * ratio);
-        canvas.height = viewport.height * ratio;
-
-        // ...then scale it back down with CSS
-        canvas.style.width = props.scale ? '' : '100%';
-        canvas.style.height = viewport.height + 'px';
-      }
-      else {
-        // this is a normal 1:1 device; just scale it simply
-        canvas.width = props.scale ? viewport.width : pdfWrapperElWidth;
-        canvas.height = viewport.height;
-        canvas.style.width = '';
-        canvas.style.height = '';
-      }
-
+      // set the 'real' canvas size to the higher width/height
+      canvas.width = viewport.width * ratio;
+      canvas.height = viewport.height * ratio;
+      canvas.style.width = viewport.width + 'px';
+      canvas.style.height = viewport.height + 'px';
       // scale the drawing context so everything will work at the higher ratio
-      await context.scale(ratio, ratio);
-      // Draw it on the canvas
-      if (context) {
-        page.render({ canvasContext: context, viewport }).promise.then(() => {
-          
-          // Render text layer for text selection
-          if (props.enableTextSelection) {
-            page.getTextContent().then((textContent) => {
-              if (!eventBus.value) {
-                eventBus.value = new pdfjsViewer.EventBus()
-              }
-              // Create new instance of TextLayerBuilder class
-              const textLayer = new pdfjsViewer.TextLayerBuilder({
-                textLayerDiv: textLayerDiv, 
-                pageIndex: page._pageIndex,
-                eventBus: eventBus.value,
-                viewport: viewport,
-                enhanceTextSelection: true
-              })
+      context.scale(ratio, ratio);
+      await page.render({
+        canvasContext: context,
+        viewport
+      }).promise;
+    };
 
-              // Set text-fragments
-              textLayer.setTextContent(textContent)
-              ctx.emit('textContent', textContent)
-              // Render text-fragments
-              textLayer.render();
-            })
-          }
-
-          if (props.enableAnnotations) {
-            // Render annotation layer for clickable links
-            page.getAnnotations().then((annotationData) => {
-              annotationLayer.style.cssText = `left: 0; top: 0; height: ${viewport.height}px; width: ${props.scale ? viewport.width : pdfWrapperElWidth}px;`
-              // Render the annotation layer
-              pdfjsLib.AnnotationLayer.render({
-                viewport: viewport.clone({ dontFlip: true }),
-                div: annotationLayer,
-                annotations: annotationData,
-                page: page,
-                linkService: '',
-                downloadManager: '',
-                renderInteractiveForms: false
-              })
-            })
-          }
-          loading.value = false
-          ctx.emit('pageLoaded', page)
-        })
+    const doScale = async () => {
+      if (!pdfPages.value || scaling.value) return;
+      scaling.value = true;
+      baseScale.value = 0;
+      currentViewport.value = undefined;
+      for (const page of pdfPages.value) {
+        resetBaseScale(page);
+        resetTargetViewport(page);
+        await scaleCanvas(page).catch((err) => {
+          console.error('scale error', err);
+        });
       }
-    }
+      scaling.value = false;
+    };
 
-    const debounce = (func: { apply: (arg0: void, arg1: any) => void }, timeout = 300) => {
-      let timer: number|undefined;
-      return (...args: any) => {
-        clearTimeout(timer);
-        timer = setTimeout(() => { func.apply(this, args); }, timeout);
-      };
-    }
+    let scaleTimer = 0;
+    window.addEventListener('resize', () => {
+      clearTimeout(scaleTimer);
+      scaleTimer = setTimeout(doScale, 500);
+    });
 
-    onMounted(() => {
-      initPdfWorker()
-    })
-    
     return {
-      props,
       pdfWrapperRef,
-      parentWrapperRef
+      initPdfWorker,
+      doScale
+    };
+  },
+  mounted() {
+    this.initPdfWorker();
+  },
+  watch: {
+    src() {
+      this.initPdfWorker();
+    },
+    scale() {
+      this.doScale();
     }
   }
-})
+});
 </script>
 
-<template>
-  <div class="vue-pdf-main" ref="parentWrapperRef">
-    <div class="vue-pdf" ref="pdfWrapperRef"></div>
-  </div>
-</template>
 
 <style lang="scss">
-
 .vue-pdf {
+  overflow: auto;
   &__wrapper {
     position: relative;
-
-    &-text-layer {
-      br {
-        display: none;
-      }
-    }
-    &-annotation-layer {
-      position: absolute;
-      .linkAnnotation {
-        position: absolute;
-        z-index: 1;
-        a {
-          width: 100%;
-          height: 100%;
-          display: inline-block;
-        }
-      }
-    }
   }
 }
 </style>

@@ -40,13 +40,20 @@ export interface VuePdfPropsType {
   allPages?: boolean;
   // The scale (zoom) of the pdf. Setting this will also disable auto scaling and resizing. 
   scale?: number;
-  // Whether to enable text selection
-  enableTextSelection?: boolean;
-  // Whether to enable annotations (clickable links)
-  enableAnnotations?: boolean;
   // page wrapper id prefix, default is `vue-pdf-page`
   wrapperIdPrefix?: string;
 }
+
+```
+
+### Events
+
+```ts
+
+emit('progress', 0);
+emit('pdfLoaded', pdf);
+emit('totalPages', pdf.numPages);
+emit('pageLoaded', page);
 
 ```
 

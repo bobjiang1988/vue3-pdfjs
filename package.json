@@ -35,8 +35,9 @@
     "build-storybook": "scripts/build-docs.sh"
   },
   "dependencies": {
-    "pdfjs-dist": "2.10.377",
-    "vue": "^3.2.19"
+    "awaitqueue": "^2.4.0",
+    "pdfjs-dist": "^2.15.349",
+    "vue": "^3.2.37"
   },
   "devDependencies": {
     "@babel/core": "^7.12.7",
