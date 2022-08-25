@@ -11,8 +11,7 @@ import {
   PDFDocumentProxy,
   PDFPageProxy
 } from 'pdfjs-dist/types/src/display/api';
-import { PageViewport } from 'pdfjs-dist/types/src/display/display_utils';
-import { defineComponent, ref, toRefs } from 'vue';
+import { computed, defineComponent, ref, toRefs } from 'vue';
 import { createLoadingTask } from './loading-task';
 import { props, VuePdfPropsType } from './vue-pdf-props';
 
@@ -24,16 +23,17 @@ export default defineComponent({
     const pdfDoc = ref<PDFDocumentProxy>();
     const pdfPages = ref<PDFPageProxy[]>();
     const baseScale = ref(0);
-    const currentViewport = ref<PageViewport>();
     const scaling = ref(false);
-
     const { src, wrapperIdPrefix, page, allPages, scale } = toRefs(props);
+
+    const targetScale = computed(() => baseScale.value * scale.value);
+
+    let resizeTimer = 0;
+    let scaleTimer = 0;
 
     const clean = async () => {
       await pdfDoc.value?.destroy();
-      scaling.value = false;
       baseScale.value = 0;
-      currentViewport.value = undefined;
       pdfDoc.value = undefined;
       pdfPages.value = undefined;
       const pdfWrapperEl = pdfWrapperRef.value as HTMLElement;
@@ -64,6 +64,7 @@ export default defineComponent({
           pdfPages.value = [await pdf.getPage(page.value)];
         }
         if (pdfPages.value) {
+          resetBaseScale();
           await Promise.all(pdfPages.value.map(renderPage));
         }
       } catch (error) {
@@ -87,27 +88,27 @@ export default defineComponent({
       pdfWrapperEl.appendChild(pageWrapper);
     };
 
-    const resetBaseScale = (page: PDFPageProxy) => {
-      if (baseScale.value) return;
-      const initViewport = page.getViewport({ scale: 1 });
+    const getPageSize = (page: PDFPageProxy, scale = 1) => {
+      const viewBox = page.view;
+      const width = Math.abs(viewBox[2] - viewBox[0]) * scale;
+      const height = Math.abs(viewBox[3] - viewBox[1]) * scale;
+      return { width, height };
+    };
+
+    const resetBaseScale = () => {
+      if (!pdfPages.value) return;
+      const page = pdfPages.value[0];
+
+      const width = getPageSize(page).width;
 
       const pdfWrapperEl = pdfWrapperRef.value as HTMLElement;
       const pdfWrapperElWidth = pdfWrapperEl.getBoundingClientRect().width;
-      baseScale.value = pdfWrapperElWidth / initViewport.width;
-    };
 
-    const resetTargetViewport = (page: PDFPageProxy) => {
-      if (currentViewport.value) return;
-      const targetScale = scale.value * baseScale.value;
-      currentViewport.value = page.getViewport({
-        scale: targetScale
-      });
+      baseScale.value = pdfWrapperElWidth / width;
     };
 
     const renderPage = async (page: PDFPageProxy) => {
       createWrapper(page);
-      resetBaseScale(page);
-      resetTargetViewport(page);
       await scaleCanvas(page);
       const size = pdfPages.value?.length || 1;
       emit('pageLoaded', page);
@@ -115,10 +116,15 @@ export default defineComponent({
       emit('progress', Number(((100 * page.pageNumber) / size).toFixed(2)));
     };
 
+    const getCanvas = (page: PDFPageProxy) => {
+      return document
+        .getElementById(`${wrapperIdPrefix.value}-${page.pageNumber}`)
+        ?.querySelector('canvas') as HTMLCanvasElement;
+    };
+
     const scaleCanvas = async (page: PDFPageProxy) => {
-      const viewport = currentViewport.value as PageViewport;
-      // prettier-ignore
-      const canvas = document.getElementById(`${wrapperIdPrefix.value}-${page.pageNumber}`)?.querySelector('canvas') as HTMLCanvasElement;
+      const viewport = page.getViewport({ scale: targetScale.value });
+      const canvas = getCanvas(page);
       // assume the device pixel ratio is 1 if the browser doesn't specify it
       const devicePixelRatio = window.devicePixelRatio || 1;
       const context = canvas.getContext('2d') as CanvasRenderingContext2D;
@@ -156,25 +162,48 @@ export default defineComponent({
         });
     };
 
-    const doScale = async () => {
-      if (!pdfPages.value || scaling.value) return;
-      scaling.value = true;
-      baseScale.value = 0;
-      currentViewport.value = undefined;
+    const realScale = async () => {
+      if (!pdfPages.value) return;
       for (const page of pdfPages.value) {
-        resetBaseScale(page);
-        resetTargetViewport(page);
         await scaleCanvas(page).catch((err) => {
           console.error('scale error', err);
         });
       }
-      scaling.value = false;
     };
 
-    let scaleTimer = 0;
-    window.addEventListener('resize', () => {
+    const fakeScale = () => {
+      if (!pdfPages.value) return;
+      const pdfWrapperEl = pdfWrapperRef.value as HTMLElement;
+      const page = pdfPages.value[0];
+
+      const { width, height } = getPageSize(page, targetScale.value);
+      // prettier-ignore
+      // console.log('targetScale.value = ', targetScale.value, 'width = ', width, 'height = ', height);
+      const canvases = pdfWrapperEl.querySelectorAll('canvas');
+      canvases.forEach((canvas) => {
+        canvas.style.width = width + 'px';
+        canvas.style.height = height + 'px';
+      });
+    };
+
+    const doScale = () => {
+      if (!pdfPages.value) return;
+      if (scaling.value) return;
+      fakeScale();
       clearTimeout(scaleTimer);
-      scaleTimer = setTimeout(doScale, 500);
+      scaleTimer = setTimeout(async () => {
+        scaling.value = true;
+        await realScale();
+        scaling.value = false;
+      }, 500);
+    };
+
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        resetBaseScale();
+        doScale();
+      }, 500);
     });
 
     return {
