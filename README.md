@@ -1,6 +1,6 @@
 <div align="center">
 
-![vue supported version](https://img.shields.io/badge/vue-3.x-brightgreen) [![npm](https://img.shields.io/npm/v/vue3-pdfjs)](https://www.npmjs.com/package/vue3-pdfjs/v/latest) [![NPM](https://img.shields.io/npm/l/vue3-pdfjs)](https://github.com/randolphtellis/vue3-pdfjs/blob/main/LICENSE.md)
+![vue supported version](https://img.shields.io/badge/vue-3.x-brightgreen) [![npm](https://img.shields.io/npm/v/@boooooob/vue3-pdfjs)](https://www.npmjs.com/package/@boooooob/vue3-pdfjs/v/latest) [![NPM](https://img.shields.io/npm/l/@boooooob/vue3-pdfjs)](https://github.com/bobjiang1988/vue3-pdfjs/blob/main/LICENSE.md)
 
 </div>
 
