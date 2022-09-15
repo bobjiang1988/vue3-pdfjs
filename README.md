@@ -63,6 +63,10 @@ emit('pageLoaded', page);
 Import components from the `esm` folder to enable tree shaking.
 Please note that Mozilla's pdfjs npm package does not export tree-shakeable ES modules. Info here - https://github.com/mozilla/pdf.js/issues/12900
 ```ts
+<template>
+  <VuePdf :src="pdfSrc" all-pages />
+</template>
+
 <script lang="ts">
 import { defineComponent, ref } from 'vue';
 import VuePdf from '@boooooob/vue3-pdfjs'
@@ -71,7 +75,7 @@ export default defineComponent({
   name: 'Home',
   components: { VuePdf },
   setup() {
-    const pdfSrc = ref<VuePdfPropsType['src']>('https://raw.githubusercontent.com/mozilla/pdf.js/ba2edeae/web/compressed.tracemonkey-pldi-09.pdf')
+    const pdfSrc = ref('https://raw.githubusercontent.com/mozilla/pdf.js/ba2edeae/web/compressed.tracemonkey-pldi-09.pdf')
 
     return {
       pdfSrc
@@ -80,7 +84,4 @@ export default defineComponent({
 });
 </script>
 
-<template>
-  <VuePdf :src="pdfSrc" all-pages />
-</template>
 ```
